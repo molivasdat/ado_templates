@@ -1,0 +1,8 @@
+variables:
+   Project.Name: 'ABC'
+   Application.Name: 'ABC-AppDBA'
+   App.Version: $(Build.BuildId)
+   Agent.PoolName: 'liquibase'
+   Source.Branch: 'main'
+#   Git.Repository:
+#   Git.Repository2:
