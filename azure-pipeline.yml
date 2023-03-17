@@ -60,6 +60,6 @@ steps:
 - task: AzureKeyVault@2
   inputs:
     azureSubscription: 'Visual Studio Professional Subscription'
-    KeyVaultName: 'sademo-vault'
+    KeyVaultName: 'your-vault-name'
     SecretsFilter: '*'
     RunAsPreJob: true
