@@ -1,0 +1,65 @@
+trigger:
+- main
+
+name: $(Application.Name)-$(Build.BuildId)
+
+pool:
+  name: $(Agent.PoolName)
+
+variables:
+- template: ./variables.yml
+- group: Liquibase_Variables
+  appname: $(Application.Name)
+  version: $(Build.BuildId)
+
+workspace:
+    clean: all
+
+steps:
+
+- script: |
+    call C:\agent\setupLBDEV_mssql.bat > NUL
+    echo $(System.DefaultWorkingDirectory)
+    call liquibase --version
+    call liquibase flow --flow-file=liquibase.checks.flowfile.yaml
+  displayName: 'Run Prechecks'
+  env:
+    # LIQUIBASE_COMMAND_PASSWORD: $(LBPASSWORD)
+    # LIQUIBASE_COMMAND_USERNAME: $(LBUSERNAME)
+    # LIQUIBASE_COMMAND_URL: $(LBURL)
+    LIQUIBASE_LICENSE_KEY: $(LIQUIBASE_LICENSE_KEY)
+
+- script: |
+    call C:\agent\setupLBDEV_mssql.bat > NUL
+    call liquibase flow --flow-file=liquibase.flowfile.yaml
+  displayName: 'Running Liquibase in DEV environment'
+  env:
+    # LIQUIBASE_COMMAND_PASSWORD: $(LBPASSWORD)
+    # LIQUIBASE_COMMAND_USERNAME: $(LBUSERNAME)
+    # LIQUIBASE_COMMAND_URL: $(LBURL)
+    LIQUIBASE_LICENSE_KEY: $(LIQUIBASE_LICENSE_KEY)
+    LB_SNAPSHOTS_DIR: "Snapshots"
+    LB_ENVIRONMENT: "DEV"
+    LB_COMMAND_TAG: $(Build.BuildId)
+
+
+- script: |
+    echo "Zipping Files"
+    zip -q -r $(appname)-$(Build.BuildId).zip *
+  displayName: 'Zipping Artifact'
+
+- script: |
+    mkdir $(System.DefaultWorkingDirectory)\artifacts
+    copy "$(appname)-$(Build.BuildId).zip" "$(System.DefaultWorkingDirectory)\artifacts"
+  displayName: 'Copy zip to Azure Artifacts'
+
+
+- upload: $(System.DefaultWorkingDirectory)\artifacts\$(appname)-$(Build.BuildId).zip
+  artifact: MyApp
+
+- task: AzureKeyVault@2
+  inputs:
+    azureSubscription: 'Visual Studio Professional Subscription'
+    KeyVaultName: 'sademo-vault'
+    SecretsFilter: '*'
+    RunAsPreJob: true
